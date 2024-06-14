@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interacción con ChatGPT</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        #chat-container {
+            width: 50%;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #messages {
+            height: 300px;
+            overflow-y: scroll;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .message {
+            margin: 10px 0;
+        }
+        .message.user {
+            text-align: right;
+        }
+        #user-input {
+            width: calc(100% - 22px);
+            padding: 10px;
+            margin: 0 0 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #send-button {
+            width: 100%;
+            padding: 10px;
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #send-button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div id="chat-container">
+        <div id="messages"></div>
+        <input type="text" id="user-input" placeholder="Escribe tu mensaje...">
+        <button id="send-button">Enviar</button>
+    </div>
+
+    <script>
+        const apiUrl = 'https://api.openai.com/v1/chat/completions'; // URL para el endpoint de completions
+        const apiKey = 'sk-proj-gw4hAxsyiLglrC5sGR8tT3BlbkFJjAG3jO7izE4TPVOnXYxx'; // Coloca tu clave de API de OpenAI aquí
+        const initialPrompt = 'Asume el rol de un Agente de Ventas que trabaja en una Agencia de Viajes que desea implementar una nueva aplicación móvil/web. Tu objetivo es interactuar con un estudiante de Ingeniería de Software para comunicar, negociar y priorizar los requerimientos funcionales y no funcionales necesarios para desarrollar esta aplicación. La aplicación debe permitir a los usuarios la simulación de un viaje, la confirmación de reservas, y el contacto con un agente de la empresa. ...'; // Trunca el prompt si es necesario
+
+        document.getElementById('send-button').addEventListener('click', () => {
+            const userInput = document.getElementById('user-input').value;
+            if (userInput.trim() !== '') {
+                addMessage('user', userInput);
+                document.getElementById('user-input').value = '';
+                sendMessageToGPT(userInput);
+            }
+        });
+
+        function addMessage(sender, text) {
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('message', sender);
+            messageContainer.innerText = text;
+            document.getElementById('messages').appendChild(messageContainer);
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+
+        async function sendMessageToGPT(userInput) {
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            { role: 'system', content: initialPrompt },
+                            { role: 'user', content: userInput }
+                        ],
+                        max_tokens: 300 // Incrementa el número de tokens si es necesario
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    addMessage('gpt', `Error: ${data.error.message}`);
+                    console.error('Error:', data.error);
+                    return;
+                }
+
+                if (data.choices && data.choices.length > 0) {
+                    const gptReply = data.choices[0].message.content.trim();
+                    addMessage('gpt', gptReply);
+                } else {
+                    addMessage('gpt', 'Lo siento, no he podido procesar tu solicitud.');
+                }
+            } catch (error) {
+                addMessage('gpt', 'Error al comunicarse con el servidor.');
+                console.error('Error al obtener la respuesta:', error);
+            }
+        }
+
+        addMessage('gpt', '¡Hola! ¿En qué puedo ayudarte hoy?');
+    </script>
+</body>
+</html>
